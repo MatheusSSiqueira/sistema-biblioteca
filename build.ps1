@@ -1,31 +1,16 @@
-param(
-    [switch]$Run
-)
+$ErrorActionPreference = "Stop"
 
-# Falha imediatamente em qualquer erro não tratado.
-$ErrorActionPreference = 'Stop'
+# Forces UTF-8 in Windows terminal to prevent mojibake on accents
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Define nome do executável e lista de fontes C.
-$OutputName = 'library_system.exe'
-$Sources = @(
-    'library_system.c',
-    'library_catalog.c',
-    'io_utils.c'
-)
-
-# Compila o projeto.
-Write-Host 'Compilando projeto...'
-gcc @Sources -o $OutputName
-
-# Interrompe em caso de falha na compilação.
-if ($LASTEXITCODE -ne 0) {
-    throw 'Falha na compilação.'
+if (!(Test-Path -Path "bin")) {
+    New-Item -ItemType Directory -Path "bin" | Out-Null
 }
 
-Write-Host "Build concluído: $OutputName"
+$javaFiles = Get-ChildItem -Path "src" -Filter "*.java" -Recurse | ForEach-Object { $_.FullName }
 
-# Executa o binário caso o parâmetro -Run tenha sido informado.
-if ($Run) {
-    Write-Host 'Executando aplicação...'
-    & (Join-Path $PSScriptRoot $OutputName)
+javac -encoding UTF-8 -d bin $javaFiles
+
+if ($LASTEXITCODE -eq 0) {
+    java -Dfile.encoding=UTF-8 -cp bin com.biblioteca.Main
 }

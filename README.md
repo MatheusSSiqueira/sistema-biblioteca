@@ -1,42 +1,99 @@
-# 📚 Sistema de Biblioteca em C
+# 📚 Sistema de Biblioteca — Arquitetura POO (Java)
 
-![C](https://img.shields.io/badge/c-%2300599C.svg?style=for-the-badge&logo=c&logoColor=white)
-![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
-![Terminal](https://img.shields.io/badge/Terminal-%234D4D4D.svg?style=for-the-badge&logo=windows-terminal&logoColor=white)
+Evolução arquitetural do sistema de gestão de acervo bibliotecário, migrando do paradigma **Procedural em C** (`structs` e manipulação direta de binários) para **Programação Orientada a Objetos em Java** aplicando princípios **SOLID** e separação em camadas.
 
-Este projeto implementa um sistema robusto e interativo de gerenciamento de biblioteca direto no console, construído inteiramente em C. O foco principal é a demonstração de conceitos fundamentais como alocação dinâmica de memória, manipulação de ponteiros, modularização e persistência de dados em arquivos binários.
+## 🏗️ Arquitetura do Sistema
 
-## 📸 Demonstração
+O projeto utiliza arquitetura em camadas com Inversão de Dependência (DIP), isolando as regras de negócio da tecnologia de persistência e da interface de console:
 
-<img src="https://github.com/user-attachments/assets/9383a0ed-2e9f-45a0-b1eb-c2f5ae185ab1" width="300">
+```mermaid
+classDiagram
+    class Main {
+        +main(String[] args)
+    }
+    class ConsoleUI {
+        -LibraryService service
+        +start()
+        -printMenu()
+        -handleRegister()
+        -handleList()
+        -handleSearch()
+        -handleSortByYear()
+        -handleEdit()
+        -handleRemove()
+    }
+    class LibraryService {
+        -BookRepository repository
+        -List~Book~ catalog
+        +registerBook()
+        +listAll()
+        +findById()
+        +sortByYear()
+        +editBook()
+        +removeBook()
+    }
+    class BookRepository {
+        <<interface>>
+        +saveAll(List~Book~ books)
+        +loadAll() List~Book~
+        +findById(int id) Optional~Book~
+    }
+    class BinaryFileBookRepository {
+        -File storageFile
+        +saveAll(List~Book~ books)
+        +loadAll() List~Book~
+        +findById(int id) Optional~Book~
+    }
+    class Book {
+        -int id
+        -String title
+        -String author
+        -int year
+        -boolean borrowed
+        +setTitle()
+        +setAuthor()
+        +setYear()
+        +borrow() boolean
+        +returnBook() boolean
+    }
 
-<img src="https://github.com/user-attachments/assets/cc1a224c-9b78-46d1-83f1-a3b5757183c1" width="350">
+    Main --> ConsoleUI : inicia
+    Main --> LibraryService : injeta
+    Main --> BinaryFileBookRepository : instancia
+    ConsoleUI --> LibraryService : consome
+    LibraryService --> BookRepository : depende de abstração
+    BinaryFileBookRepository ..|> BookRepository : implementa
+    LibraryService *-- Book : gerencia
+```
 
-## 🚀 Funcionalidades
+## 🖥️ Interface de Console
 
-- **CRUD Completo:** Cadastrar, listar, editar e remover livros por código único.
-- **Busca e Ordenação:** Pesquisar livros por código e ordenar o acervo por ano de publicação (usando o algoritmo `qsort` do C).
-- **Persistência de Dados Segura:** Salvamento e carregamento automático em arquivo binário (`acervo.dat`).
-- **Alocação Dinâmica:** O sistema não possui limite fixo de livros; a memória cresce dinamicamente conforme a necessidade.
-- **Prevenção de Corrupção:** Verificação de integridade avançada (Magic Number e checagem de bytes órfãos com `fgetc` no carregamento) para evitar *Segmentation Faults* e corrupção de memória.
-- **Tratamento de Entrada:** Blindagem contra entradas inválidas (ex: digitar letras em campos numéricos) com loops de validação e suporte a caracteres UTF-8 no console do Windows.
+O menu atual aceita as seguintes operações:
 
-## 📂 Estrutura do Projeto
+1. Cadastrar livros
+2. Imprimir todos os livros
+3. Pesquisar livro por código
+4. Ordenar livros por ano de publicação
+5. Editar livro por código
+6. Remover livro por código
+7. Sair do programa
 
-A arquitetura foi dividida para respeitar o princípio de responsabilidade única:
+Os livros são exibidos com código, título, autor, ano de publicação e status. Após cada operação, a interface aguarda `ENTER` antes de retornar ao menu.
 
-* `library_system.c`: Ponto de entrada (`main`) e orquestração do menu interativo.
-* `library_catalog.h` / `.c`: Módulo contendo as regras de negócio, manipulação do acervo e persistência.
-* `io_utils.h` / `.c`: Utilitários para entrada/saída limpa no console, limpeza de buffer e compatibilidade de codificação.
-* `build.ps1`: Script de automação em PowerShell para facilitar a compilação e execução.
+## 🚀 Como Executar
 
-## 🛠️ Como Executar
-
-### Pré-requisitos
-* Compilador GCC instalado (MinGW no Windows).
-* Terminal com suporte a PowerShell (opcional, para usar o script de build).
-
-### Opção 1: Usando o Script de Build (Recomendado)
-No terminal PowerShell, na raiz do projeto, execute o script para compilar e rodar automaticamente:
+### Windows (PowerShell)
 ```powershell
-.\build.ps1 -Run
+.\build.ps1
+```
+
+### Linux / macOS / Git Bash
+```bash
+chmod +x build.sh
+./build.sh
+```
+
+## 🛠️ Decisões Técnicas (Clean Code & SOLID)
+- **Single Responsibility Principle (SRP):** Entidade (`Book`), regra de negócio (`LibraryService`), persistência (`BinaryFileBookRepository`) e apresentação (`ConsoleUI`) possuem responsabilidades únicas e isoladas.
+- **Dependency Inversion Principle (DIP):** O serviço de domínio depende exclusivamente do contrato `BookRepository`, permitindo substituir `acervo.dat` por bancos SQL/NoSQL sem alterar regras de negócio.
+- **CI/CD Integrado:** Pipeline no GitHub Actions validando a compilação com JDK 21 a cada Push ou Pull Request.
